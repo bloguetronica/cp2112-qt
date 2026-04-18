@@ -26,8 +26,6 @@ extern "C" {
 }
 
 // Definitions
-const quint8 EPIN = 0x81;             // Address of endpoint assuming the IN direction
-const quint8 EPOUT = 0x01;            // Address of endpoint assuming the OUT direction
 const int IFACE = 0;                  // Interface number
 const unsigned int TR_TIMEOUT = 500;  // Transfer timeout in milliseconds
 
@@ -42,7 +40,7 @@ void CP2112::controlTransfer(quint8 bmRequestType, quint8 bRequest, quint16 wVal
         if (result != wLength) {
             ++errcnt;
             errstr += QObject::tr("Failed control transfer (0x%1, 0x%2).\n").arg(bmRequestType, 2, 16, QChar('0')).arg(bRequest, 2, 16, QChar('0'));
-            if (result == LIBUSB_ERROR_NO_DEVICE || result == LIBUSB_ERROR_IO || result == LIBUSB_ERROR_PIPE) {  // Note that libusb_control_transfer() may return "LIBUSB_ERROR_IO" [-1] or "LIBUSB_ERROR_PIPE" [-9] on device disconnect (version 2.0.2)
+            if (result == LIBUSB_ERROR_NO_DEVICE || result == LIBUSB_ERROR_IO || result == LIBUSB_ERROR_PIPE) {  // Note that libusb_control_transfer() may return "LIBUSB_ERROR_IO" [-1] or "LIBUSB_ERROR_PIPE" [-9] on device disconnect
                 disconnected_ = true;  // This reports that the device has been disconnected
             }
         }
@@ -86,6 +84,12 @@ void CP2112::close()
         libusb_exit(context_);  // Deinitialize libusb
         handle_ = nullptr;  // Required to mark the device as closed
     }
+}
+
+// TODO
+void CP2112::hidSendFeatureReport(const QVector<quint8> &data, int &errcnt, QString &errstr)
+{
+    controlTransfer(static_cast<quint8>(LIBUSB_REQUEST_TYPE_CLASS | LIBUSB_RECIPIENT_INTERFACE | LIBUSB_ENDPOINT_OUT), 0x09, 0x0300 | data.at(0), 0x0000, const_cast<unsigned char *>(data.data()), static_cast<quint16>(data.size()), errcnt, errstr);
 }
 
 // Opens the device having the given VID, PID and, optionally, the given serial number, and assigns its handle
@@ -132,12 +136,11 @@ int CP2112::open(quint16 vid, quint16 pid, const QString &serial)
 // Issues a reset to the CP2112
 void CP2112::reset(int &errcnt, QString &errstr)
 {
-    static const quint16 RESET_DEVICE_WLEN = 0x0002;  // TODO (temporary)
-    unsigned char controlBufferOut[RESET_DEVICE_WLEN] = {
-        RESET_DEVICE,
+    QVector<quint8> report{
+        RESET_DEVICE,  // Header
         0x01
     };
-    controlTransfer(static_cast<quint8>(LIBUSB_REQUEST_TYPE_CLASS | LIBUSB_RECIPIENT_INTERFACE | LIBUSB_ENDPOINT_OUT), 0x09, 0x0300 | RESET_DEVICE, 0x0000, controlBufferOut, RESET_DEVICE_WLEN, errcnt, errstr);
+    hidSendFeatureReport(report, errcnt, errstr);
 }
 
 // Helper function to list devices

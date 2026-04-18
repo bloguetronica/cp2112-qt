@@ -38,15 +38,15 @@ private:
 
 public:
     // Class definitions
-    static const quint16 VID = 0x10c4;      // Default USB vendor ID
-    static const quint16 PID = 0xea90;      // Default USB product ID
-    static const int SUCCESS = 0;           // Returned by open() if successful
-    static const int ERROR_INIT = 1;        // Returned by open() in case of a libusb initialization failure
-    static const int ERROR_NOT_FOUND = 2;   // Returned by open() if the device was not found
-    static const int ERROR_BUSY = 3;        // Returned by open() if the device is already in use
+    static const quint16 VID = 0x10c4;     // Default USB vendor ID
+    static const quint16 PID = 0xea90;     // Default USB product ID
+    static const int SUCCESS = 0;          // Returned by open() if successful
+    static const int ERROR_INIT = 1;       // Returned by open() in case of a libusb initialization failure
+    static const int ERROR_NOT_FOUND = 2;  // Returned by open() if the device was not found
+    static const int ERROR_BUSY = 3;       // Returned by open() if the device is already in use
 
-    // TODO Reports
-    static const quint8 RESET_DEVICE = 0x01;                        // Reset_Device command
+    // Feature report headers
+    static const quint8 RESET_DEVICE = 0x01;  // Reset_Device command
 
     explicit CP2112();
     ~CP2112();
@@ -57,6 +57,7 @@ public:
     void close();
     int open(quint16 vid, quint16 pid, const QString &serial = QString());
     void reset(int &errcnt, QString &errstr);
+    void hidSendFeatureReport(const QVector<quint8> &data, int &errcnt, QString &errstr);
 
     static QStringList listDevices(quint16 vid, quint16 pid, int &errcnt, QString &errstr);
 };
